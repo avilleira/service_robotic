@@ -11,10 +11,15 @@ def map_conversion (old_map):
   # The old map is a RGBA np.ndarray
   # If the pixel is white [1. 1. 1. 1.] and if it's black [0. 0. 0. 1.]
   new_map = np.zeros((old_map.shape[0], old_map.shape[1]))
-  GUI.showNumpy(new_map)
-  print(new_map)
   
-  
+  for row in range(new_map.shape[0]):
+    for col in range(new_map.shape[1]):
+      if np.any(old_map[row, col, :3]) == 1.0:
+        new_map[row, col] = 127
+      else:
+        new_map[row, col] = 0
+        
+  return new_map
 
 def parse_laser_data(laser_data):
   laser = []
@@ -37,8 +42,7 @@ def laser_vector(laser):
   return laser_mean
   
   
-map_conversion(map)
-  
+map = map_conversion(map)
+GUI.showNumpy(map)
 while True:
-    # Enter iterative code!
-    HAL.setV(1)
+    # Enter iterative code!gi

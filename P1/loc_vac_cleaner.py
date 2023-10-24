@@ -17,6 +17,12 @@ class Cell:
     self.centerY = cntr_y
     self.obstacle = False
     self.cleaned = False
+    # Relating all cells between them
+    self.n_neighbor = 0
+    self.e_neighbor = 0
+    self.s_neighbor = 0
+    self.w_neighbor = 0
+    
     
   def set_clean(self):
     self.cleaned = True
@@ -91,8 +97,34 @@ def draw_cleaned(cell):
   for i in range(cell.h):
     for j in range(cell.w):
       map[i + r, j + c] = 132
+
+def draw_cleaned(cell):
+  c = cell.centerX - 8
+  r = cell.centerY - 8
   
+  for i in range(cell.h):
+    for j in range(cell.w):
+      map[i + r, j + c] = 132
+      
+
+def set_neighbors():
+  for row in range(len(cells)):
+    for col in range(len(cells)):
+      # we are not interested in the obstacles
+      if (cells[row][col].obstacle == True):
+        continue
+      else:
+        # NORTH NEIGHBOR
+        cells[row][col].n_neighbor = cells[row - 1][col]
+        # SOUTH NEIGHBOR
+        cells[row][col].s_neighbor = cells[row + 1][col]
+        # EAST NEIGHBOR
+        cells[row][col].e_neighbor = cells[row][col + 1]
+        # WEST NEIGHBOR
+        cells[row][col].w_neighbor = cells[row][col - 1]
   
+ 
+''' Stablish for all cells if it is an obstacle''' 
 def map_mesh():
   for row in range(len(cells)):
     for col in range(len(cells)):
@@ -110,16 +142,49 @@ def create_grid():
   for i in range(0, w, CELLSIZE):
     cv2.line(map, (0, i), (w, i), (0, 0, 0), 1)
     
+    
+def pose_to_cell(x_coord, y_coord):
+  # Linear regresion to transform GAZEBO coords to the create_grid
+  x_cell = round(-2.9555517292899 * x_coord + 16.6514905522259)
+  y_cell = round(3.0048943492781 * y_coord + 11.6877761275171)
+  print("CELDA: X", x_cell, ", Y:", y_cell)
+  return cells[y_cell][x_cell]
+  
+  
+    
   
 
 map = map_conversion(GUI.getMap('/RoboticsAcademy/exercises/static/exercises/vacuum_cleaner_loc_newmanager/resources/mapgrannyannie.png'))
+
 # Creating all cells
 cells = map_cells(map)
+cleaned_cells = []
 map_mesh()
+set_neighbors()
 create_grid()
 GUI.showNumpy(map)
-
-
+# In order to reduce computational cost, we show the map every 10 iterations (Reducing to 10%)
+iterations = 0
+current_cell = pose_to_cell(HAL.getPose3d().x, HAL.getPose3d().y)
+orientation = "NORTH"
 while True:
+    GUI.showNumpy(map)
+    # BSA ALGORITHM
+    current_cell.set_clean()
+    draw_cleaned(current_cell)
+    if (current_cell.n_neighbor.obstacle == False) and (current_cell.n_neighbor.cleaned == False):
+      current_cell = current_cell.n_neighbor
+    elif (current_cell.e_neighbor.obstacle == False) and (current_cell.e_neighbor.cleaned == False):
+      current_cell = current_cell.e_neighbor
+    elif (current_cell.s_neighbor.obstacle == False) and (current_cell.s_neighbor.cleaned == False):
+      current_cell = current_cell.s_neighbor
+    elif (current_cell.w_neighbor.obstacle == False) and (current_cell.w_neighbor.cleaned == False):
+      current_cell = current_cell.w_neighbor
+    else:
+      
+      
+    time.sleep(0.5)
+    
   
-    print("X:", HAL.getPose3d().x, "Y:", HAL.getPose3d().y)
+  
+    

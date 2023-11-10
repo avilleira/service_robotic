@@ -40,7 +40,8 @@ while True:
       
     elif state == PATROLLING:
       HAL.set_cmd_mix(0, 1, 2, 0)
-      if HAL.get_position()[1] >= init_point + 20:
+      current_pos = HAL.get_position()
+      if current_pos[1] >= init_point[1] + 20:
         print("HE LLEGAO")
       
     GUI.showLeftImage(HAL.get_ventral_image())

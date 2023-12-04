@@ -1,5 +1,6 @@
 from GUI import GUI
 from HAL import HAL
+import math
 
 # Enter sequential code!
 
@@ -11,9 +12,10 @@ ALIGNING = 1
 PARKING = 2
 
 # MOVEMENTS
-CURVED_BACK = 0
+LEFT_BACK = 0
 BACK = 1
 FRONT = 2
+RIGHT_BACK = 3
 
 front_right_laser = 60
 
@@ -21,7 +23,7 @@ front_right_laser = 60
 def detect_free_spcace():
   f_laser = HAL.getFrontLaserData().values
   r_laser = HAL.getRightLaserData().values
-  b_laser = HAL.getBackLaserData().values
+
   free_space = False
 
   for angle in range(len(r_laser)):
@@ -46,11 +48,25 @@ def line_up_car():
         return free_space
   return True
   
+def distance_behind():
+  b_laser = HAL.getBackLaserData().values
   
-
+  min_val = 100
+  
+  for angle_value in b_laser:
+    if angle_value < min_val and angle_value > HAL.getRightLaserData().minRange:
+      min_val = angle_value
+  
+  return min_val
+  
 status = SEARCHING
+movement = LEFT_BACK
+left_back = False
+
+init_ori = HAL.getPose3d().yaw
 
 while True:
+
     # Enter iterative code!
     if status == SEARCHING:
       if detect_free_spcace() == True:
@@ -61,14 +77,33 @@ while True:
         HAL.setV(1)
     
     elif status == ALIGNING:
-      HAL.setV(1)
+      
       if line_up_car() == True:
         HAL.setV(0)
         status = PARKING
         print("ALINEADO")
+        # We keep current orientation
+        init_ori = HAL.getPose3d().yaw
       else:
-        print(HAL.getRightLaserData().values)
+        HAL.setV(1)
         
     elif status == PARKING:
-      HAL.setW(0.5)
-      HAL.setV(-1)
+      if movement == LEFT_BACK:
+        if ((HAL.getPose3d().yaw - init_ori)*180/math.pi) <= 50:
+          HAL.setW(0.5)
+          HAL.setV(-0.5)
+        else:
+          movement = RIGHT_BACK
+        
+      elif movement == RIGHT_BACK:
+        if ((HAL.getPose3d().yaw() - init_ori)*180/math.pi) > 0:
+          HAL.setW(-1)
+          HAL.setV(-0.5)
+          
+          if distance_behind() < 3:
+            if round(init_ori - HAL.getPose3d.yaw()) == 0: 
+              HAL.setV(1)
+        else:
+          movement = RIGHT_BACK
+        
+    

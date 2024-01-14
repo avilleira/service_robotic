@@ -1,17 +1,57 @@
+import numpy as np
+import cv2 as cv
 from ompl import base as ob
 from ompl import geometric as og
 import math
 from math import sqrt
-import numpy as np
 import matplotlib.pyplot as plt
 
-# specify valid state condition
+
+
+# Enter sequential code!
+
+IMAGE_H = 279
+IMAGE_W = 415
+SHELF_POS  = [3.728, 0.579]
+
+# GLOBAL VARIABLES
+obstacle_arr = []
+dimensions = [0, 0, IMAGE_W, IMAGE_H]
+map = cv.imread("map.png")
+
 def isStateValid(state):
-  x = state.getX()
-  y = state.getY()
-  if sqrt(pow(x - obstacle[0], 2) + pow(y - obstacle[1], 2)) - obstacle[2] <= 0:
-    return False
+  x = round(state.getX())
+  y = round(state.getY())
+  for i in range(len(obstacle_arr)):
+    if sqrt(pow(x - obstacle_arr[i][1], 2) + pow(y - obstacle_arr[i][0], 2)) <= 0:
+      return False
+  #if [y, x] not in obstacle_arr:
+   # return True
   return True
+
+# Get obstacles array, thick them to avoid collisions
+def get_obstacles(world_map):
+  t = 0
+  for row in range(IMAGE_H):
+    for col in range(IMAGE_W):
+      if np.any(world_map[row, col, :3]) == 0. and (row > 0 and row < IMAGE_H) and (col > 0 and col < IMAGE_W):
+        for r in range(row - 4, row + 5):
+          for c in range(col - 4, col + 5):
+            if [r, c] not in obstacle_arr and r < IMAGE_H  and r >= 0 and c < IMAGE_W and c >= 0:
+              obstacle_arr.append([r, c])
+
+  for row in range(IMAGE_H):
+    for col in range(IMAGE_W):
+      if [row, col] in obstacle_arr:
+        world_map[row, col] = [0, 0, 0]
+
+# WORLD 2 MAP coordinates conversion
+def world_2_map(coordx, coordy):
+  
+  new_col = round(20.0775945683802*coordx + 207)
+  new_row = round(-20.4411764705882*coordy + 139)
+  
+  return new_col, new_row
 
 def plan():
   # Construct the robot state space in which we're planning. We're
@@ -33,13 +73,13 @@ def plan():
 
   # Set our robot's starting and goal state
   start = ob.State(space)
-  start().setX(0)
-  start().setY(0)
-  start().setYaw(math.pi / 4)
+  start().setX((IMAGE_W-1)//2)
+  start().setY(278//2)
+  start().setYaw(math.pi / 2)
   goal = ob.State(space)
-  goal().setX(10)
-  goal().setY(10)
-  goal().setYaw(math.pi / 4)
+  goal().setX(195)
+  goal().setY(60)
+  goal().setYaw(math.pi/2)
 
   # create a problem instance
   pdef = ob.ProblemDefinition(si)
@@ -49,7 +89,6 @@ def plan():
 
   # create a planner for the defined space
   planner = og.RRTConnect(si)
-
   # set the problem we are trying to solve for the planner
   planner.setProblemDefinition(pdef)
 
@@ -59,32 +98,24 @@ def plan():
   # solve the problem and print the solution if exists
   solved = planner.solve(1.0)
   if solved:
-    print(pdef.getSolutionPath())
-    plot_path(pdef.getSolutionPath(), dimensions)
-
+    print(pdef.getSolutionPath().printAsMatrix())
+    path = create_numpy_path(pdef.getSolutionPath().printAsMatrix())
+    for p in path:
+      map[round(p[1]), round(p[0])] = [0, 0, 255]
+  else:
+    print("NOT FOUND")
+  
 def create_numpy_path(states):
-    lines = states.splitlines()
-    length = len(lines) - 1
-    array = np.zeros((length, 2))
+  lines = states.splitlines()
+  length = len(lines) - 1
+  array = np.zeros((length, 2))
+  for i in range(length):
+      array[i][0] = float(lines[i].split(" ")[0])
+      array[i][1] = float(lines[i].split(" ")[1])
+  return array
 
-    for i in range(length):
-        array[i][0] = float(lines[i].split(" ")[0])
-        array[i][1] = float(lines[i].split(" ")[1])
-    return array
-
-def plot_path(solution_path, dimensions):
-  matrix = solution_path.printAsMatrix()
-  path = create_numpy_path(matrix)
-  x, y = path.T
-  ax = plt.gca()
-  ax.plot(x, y, 'r--')
-  ax.plot(x, y, 'go') 
-  ax.axis(xmin=dimensions[0], xmax=dimensions[2], ymin=dimensions[1], ymax=dimensions[3])
-  ax.add_patch(plt.Circle((obstacle[0], obstacle[1]), radius=obstacle[2]))
-
-  plt.show()
-
-if __name__ == "__main__":
-  dimensions = [0, 0, 10, 10] 
-  obstacle = [5.5, 5.5, 1]   # [x, y, radius]
-  plan()
+get_obstacles(map)
+map[70, 195] = [0, 255, 0]
+plan()
+cv.imshow("Map", map)
+k = cv.waitKey(0)

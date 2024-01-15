@@ -22,21 +22,20 @@ map = cv.imread("map.png")
 def isStateValid(state):
   x = round(state.getX())
   y = round(state.getY())
-  for i in range(len(obstacle_arr)):
-    if sqrt(pow(x - obstacle_arr[i][1], 2) + pow(y - obstacle_arr[i][0], 2)) <= 0:
-      return False
-  #if [y, x] not in obstacle_arr:
-   # return True
-  return True
+  #for i in range(len(obstacle_arr)):
+  #  if sqrt(pow(x - obstacle_arr[i][1], 2) + pow(y - obstacle_arr[i][0], 2)) <= 0:
+  #    return False
+  if [y, x] not in obstacle_arr:
+    return True
+  return False
 
 # Get obstacles array, thick them to avoid collisions
 def get_obstacles(world_map):
-  t = 0
   for row in range(IMAGE_H):
     for col in range(IMAGE_W):
       if np.any(world_map[row, col, :3]) == 0. and (row > 0 and row < IMAGE_H) and (col > 0 and col < IMAGE_W):
-        for r in range(row - 4, row + 5):
-          for c in range(col - 4, col + 5):
+        for r in range(row - 5, row + 6): # With 8 works
+          for c in range(col - 5, col + 6):
             if [r, c] not in obstacle_arr and r < IMAGE_H  and r >= 0 and c < IMAGE_W and c >= 0:
               obstacle_arr.append([r, c])
 

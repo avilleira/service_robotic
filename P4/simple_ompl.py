@@ -13,19 +13,21 @@ import matplotlib.pyplot as plt
 IMAGE_H = 279
 IMAGE_W = 415
 SHELF_POS  = [3.728, 0.579]
+OBSTACLE_SIZE = 6
 
 # GLOBAL VARIABLES
 obstacle_arr = []
-dimensions = [0, 0, IMAGE_W, IMAGE_H]
+dimensions = [0, 0, IMAGE_H, IMAGE_W]
 map = cv.imread("map.png")
 
 def isStateValid(state):
+
   x = round(state.getX())
   y = round(state.getY())
   #for i in range(len(obstacle_arr)):
   #  if sqrt(pow(x - obstacle_arr[i][1], 2) + pow(y - obstacle_arr[i][0], 2)) <= 0:
   #    return False
-  if [y, x] not in obstacle_arr:
+  if [x, y] not in obstacle_arr:
     return True
   return False
 
@@ -34,8 +36,8 @@ def get_obstacles(world_map):
   for row in range(IMAGE_H):
     for col in range(IMAGE_W):
       if np.any(world_map[row, col, :3]) == 0. and (row > 0 and row < IMAGE_H) and (col > 0 and col < IMAGE_W):
-        for r in range(row - 5, row + 6): # With 8 works
-          for c in range(col - 5, col + 6):
+        for r in range(row - OBSTACLE_SIZE, row + OBSTACLE_SIZE): # With 8 works
+          for c in range(col - OBSTACLE_SIZE, col + OBSTACLE_SIZE):
             if [r, c] not in obstacle_arr and r < IMAGE_H  and r >= 0 and c < IMAGE_W and c >= 0:
               obstacle_arr.append([r, c])
 
@@ -45,14 +47,15 @@ def get_obstacles(world_map):
         world_map[row, col] = [0, 0, 0]
 
 # WORLD 2 MAP coordinates conversion
+# row is x and col is y
 def world_2_map(coordx, coordy):
-  
-  new_col = round(20.0775945683802*coordx + 207)
-  new_row = round(-20.4411764705882*coordy + 139)
-  
-  return new_col, new_row
 
-def plan():
+  new_row = round(-20.4411764705882*coordx + 139)
+  new_col = round(-20.0775945683802*coordy + 207)
+  
+  return new_row, new_col
+
+def plan(destx, desty):
   # Construct the robot state space in which we're planning. We're
   # planning in [0,1]x[0,1], a subset of R^2.
   space = ob.SE2StateSpace()
@@ -72,13 +75,13 @@ def plan():
 
   # Set our robot's starting and goal state
   start = ob.State(space)
-  start().setX((IMAGE_W-1)//2)
-  start().setY(278//2)
-  start().setYaw(math.pi / 2)
+  start().setX((IMAGE_H-1)//2)
+  start().setY((IMAGE_W-1)//2)
+  start().setYaw(0)
   goal = ob.State(space)
-  goal().setX(195)
-  goal().setY(60)
-  goal().setYaw(math.pi/2)
+  goal().setX(destx)
+  goal().setY(desty)
+  goal().setYaw(0)
 
   # create a problem instance
   pdef = ob.ProblemDefinition(si)
@@ -95,12 +98,13 @@ def plan():
   planner.setup()
 
   # solve the problem and print the solution if exists
-  solved = planner.solve(1.0)
+  solved = planner.solve(20.0)
   if solved:
     print(pdef.getSolutionPath().printAsMatrix())
     path = create_numpy_path(pdef.getSolutionPath().printAsMatrix())
+    print(path)
     for p in path:
-      map[round(p[1]), round(p[0])] = [0, 0, 255]
+      map[round(p[0]), round(p[1])] = [0, 0, 255]
   else:
     print("NOT FOUND")
   
@@ -114,7 +118,9 @@ def create_numpy_path(states):
   return array
 
 get_obstacles(map)
-map[70, 195] = [0, 255, 0]
-plan()
-cv.imshow("Map", map)
+coord_x, coord_y = world_2_map(3.728, 0.579)
+dest_x, dest_y = world_2_map(3.728, 0.579)
+plan(dest_x, dest_y)
+map[coord_x, coord_y] = [8, 255, 137]
+cv.imshow("Amazon warehouse 1", map)
 k = cv.waitKey(0)

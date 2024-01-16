@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 IMAGE_H = 279
 IMAGE_W = 415
 SHELF_POS  = [3.728, 0.579]
-OBSTACLE_SIZE = 6
+INIT_POS = [0, 0]
+OBSTACLE_SIZE = 4
 
 # GLOBAL VARIABLES
 obstacle_arr = []
@@ -24,10 +25,10 @@ def isStateValid(state):
 
   x = round(state.getX())
   y = round(state.getY())
-  #for i in range(len(obstacle_arr)):
-  #  if sqrt(pow(x - obstacle_arr[i][1], 2) + pow(y - obstacle_arr[i][0], 2)) <= 0:
-  #    return False
   if [x, y] not in obstacle_arr:
+    for i in range(len(obstacle_arr)):
+      if sqrt(pow(x - obstacle_arr[i][1], 2) + pow(y - obstacle_arr[i][0], 2)) - 3 <= 0:
+        return False
     return True
   return False
 
@@ -35,10 +36,10 @@ def isStateValid(state):
 def get_obstacles(world_map):
   for row in range(IMAGE_H):
     for col in range(IMAGE_W):
-      if np.any(world_map[row, col, :3]) == 0. and (row > 0 and row < IMAGE_H) and (col > 0 and col < IMAGE_W):
-        for r in range(row - OBSTACLE_SIZE, row + OBSTACLE_SIZE): # With 8 works
-          for c in range(col - OBSTACLE_SIZE, col + OBSTACLE_SIZE):
-            if [r, c] not in obstacle_arr and r < IMAGE_H  and r >= 0 and c < IMAGE_W and c >= 0:
+      if 0 < row < IMAGE_H and 0 < col < IMAGE_W and np.any(world_map[row, col, :3] == 0.):
+        for r in range(row - OBSTACLE_SIZE, row + OBSTACLE_SIZE + 1): # With 8 works
+          for c in range(col - OBSTACLE_SIZE, col + OBSTACLE_SIZE + 1):
+            if [r, c] not in obstacle_arr and 0 <= r < IMAGE_H and 0 <= c < IMAGE_W :
               obstacle_arr.append([r, c])
 
   for row in range(IMAGE_H):
@@ -90,7 +91,9 @@ def plan(destx, desty):
   pdef.setStartAndGoalStates(start, goal)
 
   # create a planner for the defined space
-  planner = og.RRTConnect(si)
+  planner = og.LazyPRM(si)
+  # Set the number of space between spaces
+  planner.setRange(15)
   # set the problem we are trying to solve for the planner
   planner.setProblemDefinition(pdef)
 
@@ -113,8 +116,8 @@ def create_numpy_path(states):
   length = len(lines) - 1
   array = np.zeros((length, 2))
   for i in range(length):
-      array[i][0] = float(lines[i].split(" ")[0])
-      array[i][1] = float(lines[i].split(" ")[1])
+      array[i][0] = round(float(lines[i].split(" ")[0]))
+      array[i][1] = round(float(lines[i].split(" ")[1]))
   return array
 
 get_obstacles(map)

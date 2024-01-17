@@ -27,7 +27,7 @@ def isStateValid(state):
   y = round(state.getY())
   if [x, y] not in obstacle_arr:
     for i in range(len(obstacle_arr)):
-      if sqrt(pow(x - obstacle_arr[i][1], 2) + pow(y - obstacle_arr[i][0], 2)) - 3 <= 0:
+      if sqrt(pow(x - obstacle_arr[i][1], 2) + pow(y - obstacle_arr[i][0], 2)) - 2 <= 0:
         return False
     return True
   return False
@@ -56,6 +56,11 @@ def world_2_map(coordx, coordy):
   
   return new_row, new_col
 
+def map_2_world(row, col):
+  posx = -0.0489208633094*row + 6.8
+  posy = -0.049806763285*col + 10.31
+
+  return posx, posy
 def plan(destx, desty):
   # Construct the robot state space in which we're planning. We're
   # planning in [0,1]x[0,1], a subset of R^2.
@@ -91,9 +96,9 @@ def plan(destx, desty):
   pdef.setStartAndGoalStates(start, goal)
 
   # create a planner for the defined space
-  planner = og.LazyPRM(si)
+  planner = og.RRTConnect(si)
   # Set the number of space between spaces
-  planner.setRange(15)
+  planner.setRange(30)
   # set the problem we are trying to solve for the planner
   planner.setProblemDefinition(pdef)
 
@@ -120,9 +125,12 @@ def create_numpy_path(states):
       array[i][1] = round(float(lines[i].split(" ")[1]))
   return array
 
+h, y = map_2_world(IMAGE_H//2, IMAGE_W//2)
+print(h, y)
 get_obstacles(map)
 coord_x, coord_y = world_2_map(3.728, 0.579)
 dest_x, dest_y = world_2_map(3.728, 0.579)
+h, y = map_2_world(IMAGE_H//2, IMAGE_W//2)
 plan(dest_x, dest_y)
 map[coord_x, coord_y] = [8, 255, 137]
 cv.imshow("Amazon warehouse 1", map)

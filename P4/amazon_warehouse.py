@@ -5,6 +5,7 @@ from ompl import geometric as og
 from math import sqrt
 import math
 import numpy as np
+import time
 
 # CONSTANTS
 
@@ -33,7 +34,7 @@ def isStateValid(state):
 
   if [x, y] not in obstacle_arr:
     for i in range(len(obstacle_arr)):
-      if sqrt(pow(x - obstacle_arr[i][0], 2) + pow(y - obstacle_arr[i][1], 2)) - 3 <= 0:
+      if sqrt(pow(x - obstacle_arr[i][0], 2) + pow(y - obstacle_arr[i][1], 2)) - 4 <= 0:
         return False
     return True
   return False
@@ -130,12 +131,13 @@ def create_numpy_path(states):
 #----------------- MOTION FUNCTIONS -----------------
 
 def angular_vel(setpoint, prev_err):
-  Kp = 1.7
-  Kd = 1.2
+  Kp = 0.7
+  Kd = 0.35
   
   setpoint_posx, setpoint_posy = map_2_world(setpoint[1], setpoint[0])
   set_angle = math.atan2(setpoint_posy - HAL.getPose3d().y, setpoint_posx - HAL.getPose3d().x)
   curr_error = set_angle - HAL.getPose3d().yaw
+  print(curr_error)
   w = Kp*curr_error + Kd*(curr_error - prev_err)
   return w, curr_error
 
@@ -172,17 +174,21 @@ while True:
       
       if round(HAL.getPose3d().yaw - math.pi) != 0:
         HAL.setW(0.1)
+        
       else:
         HAL.setW(0)
+        time.sleep(1)
         HAL.lift()
-        state == RETURN
-        path_index = len(path_arr) - 1
+        state = RETURN
+        path_index = 0
+        err = 0
         
     elif state == RETURN:
-      print(path_index)
+      
       HAL.setV(0.05)
       ang_v, err = angular_vel(path_arr[path_index], err)
-      HAL.setW(ang_v)
+      HAL.setW(0.014)
+      print()
       path_x, path_y = map_2_world(path_arr[path_index][1], path_arr[path_index][0])
       
       if (abs(path_x - HAL.getPose3d().x) <= DISTANCE_ERR and
@@ -191,4 +197,7 @@ while True:
           
       if path_index == -1:
         HAL.putdown()
+        HAL.setv(0)
+        HAL.setW(0)
         state = FINISHED
+    

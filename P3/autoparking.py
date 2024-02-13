@@ -108,6 +108,3 @@ while True:
         else:
           HAL.setV(0.5)
           HAL.setW(-1)
-    elif status == PARKED:
-      HAL.setV(0)
-      HAL.setW(0)
